@@ -13,7 +13,6 @@
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
 
-
 #define WUNDERGROUND_API_KEY "" //https://www.wunderground.com/member/api-keys
 #define WUNDERGROUND_DEVICE_ID "KOHCLEVE" // https://www.wunderground.com/member/devices
 #define WUNDERGROUND_DEVICE_PASSWORD "" // https://www.wunderground.com/member/devices
@@ -46,6 +45,7 @@ private:
   float _temperature_f;
   float _pressure_hPa;
   float _pressure_mmHg;
+  float _pressure_inHg;
   float _humidity;
 
   Adafruit_BME280 _bme;
@@ -64,12 +64,13 @@ public:
     }
 
     _pressure_hPa = bme.readPressure() / 100.0F;
-    _pressure_mmHg = (_pressure_hPa * 0.75006157584566F);
+    _pressure_mmHg = (_pressure_hPa * 0.7500637554);
+    _pressure_inHg = (_pressure_hPa * 0.02952998057228486);
     _temperature_c = bme.readTemperature();
     _temperature_f = ((((_temperature_c * 9) + 3) / 5) + 32);
     _humidity = bme.readHumidity();
-    _dewpoint_c = _temperature_c - ((100.0F-_humidity) / 5.0F);
-    _dewpoint_f = _temperature_f - ((100.0F-_humidity) / 5.0F);
+    _dewpoint_c = _temperature_c - ((100 - _humidity) / 5);
+    _dewpoint_f = ((((_dewpoint_c * 9) + 3) / 5) + 32);
   }
 
   float temperature()
@@ -107,7 +108,11 @@ public:
     }
     else if (_units == "mmhg")
     {
-      return _pressure_mmHg;
+      return _pressure_inHg;
+    }
+    else if (_units == "inhg")
+    {
+      return _pressure_inHg;
     }
 
     return NAN;
@@ -118,11 +123,11 @@ public:
     return _humidity;
   }
 
-  float dewPointC() {
+  float dewpointC() {
     return _dewpoint_c;
   }
 
-  float dewPointF() {
+  float dewpointF() {
     return _dewpoint_f;
   }
 
@@ -130,11 +135,11 @@ public:
   {
     String _units = toLowerCase(units);
 
-    if (_units == "C")
+    if (_units == "c")
     {
       return _dewpoint_c;
     }
-    else if (_units == "F")
+    else if (_units == "f")
     {
       return _dewpoint_f;
     }
@@ -180,7 +185,7 @@ public:
     const String _unitsLabel = unitString ? unitString : units;
     String _units = toLowerCase(units);
 
-    if ((_units == "hpa") || (_units = "mmhg"))
+    if ((_units == "hpa") || (_units = "inhg"))
     {
       return String(this->pressure(_units)) + _unitsLabel;
     }
@@ -254,8 +259,6 @@ Reading reading = Reading(bme);
 
 void lightSleep(uint64_t duration)
 {
-  delay(5000);
-
   // Deep Sleep is a Low Power Mode that
   // It doesn't save anything.
   // The setup() will run afterwards
@@ -317,7 +320,7 @@ void send()
 
   WiFiClient client;
   HTTPClient http;
-  String serverPath = WUNDERGROUND_API_BASE_URL + String("&humidity=") + reading.serializeHumidity() + String("&tempf=") + reading.serializeTemperatureF() + String("&baromin=") + String(reading.serializePressure("mmhg")) + String("&dewptf=" + String(reading.dewPointF()));
+  String serverPath = WUNDERGROUND_API_BASE_URL + String("&humidity=") + reading.serializeHumidity() + String("&tempf=") + reading.serializeTemperatureF() + String("&baromin=") + String(reading.serializePressure("mmhg")) + String("&dewptf=" + String(reading.serializeDewPointF()));
 
   http.begin(serverPath);
   int httpCode = http.GET();
@@ -343,7 +346,7 @@ void send()
   http.end();
   
   Serial.println("T: " + reading.serializeTemperature("f"));
-  Serial.println("P: " + reading.serializePressure("mmhg"));
+  Serial.println("P: " + reading.serializePressure("inhg"));
   Serial.println("H: " + reading.serializeHumidity("%"));
   Serial.println("D: " + reading.serializeDewPoint("f"));
 
@@ -356,9 +359,6 @@ void done()
 {
   Serial.println("Done");
   step = STEP_START;
-  // Serial.println("Humidity: " + String(reading.humidity()));
-  // Serial.println("Pressure: " + String(reading.pressure()));
-  // Serial.println("Temperature: " + String(reading.temperature()));
 
   // Sleep for 60s
   deepSleep(60000000LL);
