@@ -15,7 +15,7 @@
 
 
 #define WUNDERGROUND_API_KEY "" //https://www.wunderground.com/member/api-keys
-#define WUNDERGROUND_DEVICE_ID "KOHCLE" // https://www.wunderground.com/member/devices
+#define WUNDERGROUND_DEVICE_ID "KOHCLEVE" // https://www.wunderground.com/member/devices
 #define WUNDERGROUND_DEVICE_PASSWORD "" // https://www.wunderground.com/member/devices
 #define WUNDERGROUND_API_BASE_URL "http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php" + String("?ID=") + WUNDERGROUND_DEVICE_ID + String("&PASSWORD=") + WUNDERGROUND_DEVICE_PASSWORD + String("&apiKey=") + WUNDERGROUND_API_KEY + String("&dateutc=") + String("now") + String("&action=") + String("updateraw") + String("&format=") + String("json")
 
@@ -40,6 +40,8 @@ void error(String message)
 class Reading
 {
 private:
+  float _dewpoint_c;
+  float _dewpoint_f;
   float _temperature_c;
   float _temperature_f;
   float _pressure_hPa;
@@ -66,6 +68,8 @@ public:
     _temperature_c = bme.readTemperature();
     _temperature_f = ((((_temperature_c * 9) + 3) / 5) + 32);
     _humidity = bme.readHumidity();
+    _dewpoint_c = _temperature_c - ((100.0F-_humidity) / 5.0F);
+    _dewpoint_f = _temperature_f - ((100.0F-_humidity) / 5.0F);
   }
 
   float temperature()
@@ -114,73 +118,125 @@ public:
     return _humidity;
   }
 
-  String serializeTemperatureC(Reading r)
-  {
-    return String(r.temperature("c"));
+  float dewPointC() {
+    return _dewpoint_c;
   }
 
-  String serializeTemperatureF(Reading r)
-  {
-    return String(r.temperature("f"));
+  float dewPointF() {
+    return _dewpoint_f;
   }
 
-  String serializeTemperature(Reading r, String units)
+  float dewpoint(String units)
   {
-    return serializeTemperature(r, units, units);
+    String _units = toLowerCase(units);
+
+    if (_units == "C")
+    {
+      return _dewpoint_c;
+    }
+    else if (_units == "F")
+    {
+      return _dewpoint_f;
+    }
+
+    return NAN;
   }
 
-  String serializeTemperature(Reading r, String units, String unitString)
+  String serializeTemperatureC()
+  {
+    return String(_temperature_c);
+  }
+
+  String serializeTemperatureF()
+  {
+    return String(_temperature_f);
+  }
+
+  String serializeTemperature(String units)
+  {
+    return serializeTemperature(units, units);
+  }
+
+  String serializeTemperature(String units, String unitString)
   {
     const String _unitsLabel = unitString ? unitString : units;
     String _units = toLowerCase(units);
 
     if (_units == String("c") || _units == String("f"))
     {
-      return String(r.temperature(_units)) + _unitsLabel;
+      return String(this->temperature(_units)) + _unitsLabel;
     }
 
-    return String(r.temperature("c")) + _unitsLabel;
+    return String(this->temperature("c")) + _unitsLabel;
   }
 
-  String serializePressure(Reading r, String units)
+  String serializePressure(String units)
   {
-    return serializePressure(r, units, units);
+    return serializePressure(units, units);
   }
 
-  String serializePressure(Reading r, String units, String unitString)
+  String serializePressure(String units, String unitString)
   {
     const String _unitsLabel = unitString ? unitString : units;
     String _units = toLowerCase(units);
 
     if ((_units == "hpa") || (_units = "mmhg"))
     {
-      return String(r.pressure(_units)) + _unitsLabel;
+      return String(this->pressure(_units)) + _unitsLabel;
     }
 
-    return String(r.pressure());
+    return String(this->pressure());
   }
 
-  String serializeHumidity(Reading r)
+  String serializeHumidity()
   {
-    return serializeHumidity(r, "");
+    return serializeHumidity("");
   }
 
-  String serializeHumidity(Reading r, String units)
+  String serializeHumidity(String units)
   {
-    return serializeHumidity(r, units, units);
+    return serializeHumidity(units, units);
   }
 
-  String serializeHumidity(Reading r, String units, String unitString)
+  String serializeHumidity(String units, String unitString)
   {
     const String _unitsLabel = unitString ? unitString : units;
     String _units = toLowerCase(units);
 
     if ((_units == "%"))
     {
-      return String(r.humidity() + _unitsLabel);
+      return String(this->humidity() + _unitsLabel);
     }
 
-    return String(r.humidity());
+    return String(this->humidity());
+  }
+
+  String serializeDewPointC()
+  {
+    return String(_dewpoint_c);
+  }
+
+  String serializeDewPointF()
+  {
+    return String(_dewpoint_f);
+  }
+
+  String serializeDewPoint(String units)
+  {
+    return serializeDewPoint(units, units);
+  }
+
+  String serializeDewPoint(String units, String unitString)
+  {
+    const String _unitsLabel = unitString ? unitString : units;
+    String _units = toLowerCase(units);
+
+    if (_units == String("c") || _units == String("f"))
+    {
+      return String(this->dewpoint(_units)) + _unitsLabel;
+    }
+
+    return String(this->temperature("c")) + _unitsLabel;
   }
 };
 
@@ -261,7 +317,7 @@ void send()
 
   WiFiClient client;
   HTTPClient http;
-  String serverPath = WUNDERGROUND_API_BASE_URL + String("&humidity=") + reading.serializeHumidity(reading) + String("&tempf=") + reading.serializeTemperatureF(reading) + String("&baromin=") + String(reading.serializePressure(reading, "mmhg"));
+  String serverPath = WUNDERGROUND_API_BASE_URL + String("&humidity=") + reading.serializeHumidity() + String("&tempf=") + reading.serializeTemperatureF() + String("&baromin=") + String(reading.serializePressure("mmhg")) + String("&dewptf=" + String(reading.dewPointF()));
 
   http.begin(serverPath);
   int httpCode = http.GET();
@@ -286,9 +342,10 @@ void send()
 
   http.end();
   
-  Serial.println("T: " + reading.serializeTemperature(reading, "f"));
-  Serial.println("P: " + reading.serializePressure(reading, "mmhg"));
-  Serial.println("H: " + reading.serializeHumidity(reading));
+  Serial.println("T: " + reading.serializeTemperature("f"));
+  Serial.println("P: " + reading.serializePressure("mmhg"));
+  Serial.println("H: " + reading.serializeHumidity("%"));
+  Serial.println("D: " + reading.serializeDewPoint("f"));
 
   WiFi.disconnect();
   // Send over WiFi
@@ -298,7 +355,6 @@ void send()
 void done()
 {
   Serial.println("Done");
-  delay(1000);
   step = STEP_START;
   // Serial.println("Humidity: " + String(reading.humidity()));
   // Serial.println("Pressure: " + String(reading.pressure()));
@@ -311,8 +367,8 @@ void done()
 void setup()
 {
   Serial.begin(115200);
-  delay(1500);
   Serial.println("Checking BME280 Connectivity");
+
 
   bool status = bme.begin();
   if (!status)
