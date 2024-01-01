@@ -130,7 +130,7 @@ void send()
   HTTPClient http;
 
   char url[1024];
-  sprintf(url, "%s&ID=%s&PASSWORD=%s&apiKey=%s&dateutc=%s&action=%s&format=%s&humidity=%f&tempf=%f&baromin=%f&dewptf=%f",
+  sprintf(url, "%s&ID=%s&PASSWORD=%s&apiKey=%s&dateutc=%s&action=%s&format=%s&humidity=%.2f&tempf=%.2f&baromin=%.2f&dewptf=%.2f",
     WUNDERGROUND_API_BASE_URL,
     WUNDERGROUND_DEVICE_ID,
     WUNDERGROUND_DEVICE_PASSWORD,
@@ -169,10 +169,10 @@ void send()
 
   http.end();
   
-  Serial.printf("T: %d%s", reading.temperature_f, "F");
-  Serial.printf("P: %d%s", reading.pressure_inHg, "inHg");
-  Serial.printf("H: %d%s",  reading.humidity, "%");
-  Serial.printf("D: %d%s", reading.dewpoint_f, "F");
+  Serial.printf("T: %.2f%s", reading.temperature_f, "F");
+  Serial.printf("P: %.2f%s", reading.pressure_inHg, "inHg");
+  Serial.printf("H: %.2f%s",  reading.humidity, "%");
+  Serial.printf("D: %.2f%s", reading.dewpoint_f, "F");
 
   WiFi.disconnect();
   // Send over WiFi
