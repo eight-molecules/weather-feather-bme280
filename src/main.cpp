@@ -5,17 +5,13 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
+#include "env.h"
+
 #define BME_SCK 13
 #define BME_MISO 12
 #define BME_MOSI 11
 #define BME_CS 10
 
-#define WIFI_SSID ""
-#define WIFI_PASSWORD ""
-
-#define WUNDERGROUND_API_KEY "" //https://www.wunderground.com/member/api-keys
-#define WUNDERGROUND_DEVICE_ID "KOHCLEVE" // https://www.wunderground.com/member/devices
-#define WUNDERGROUND_DEVICE_PASSWORD "" // https://www.wunderground.com/member/devices
 #define WUNDERGROUND_API_BASE_URL "http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php"
 
 Adafruit_BME280 bme;
@@ -76,14 +72,14 @@ void lightSleep(uint64_t duration)
   }
 }
 
-void deepSleep(uint64_t duration)
+void deepSleep60s()
 {
   delay(1000);
 
   // Deep Sleep is a Low Power Mode that
   // It doesn't save anything.
   // The setup() will run afterwards
-  esp_sleep_enable_timer_wakeup(duration);
+  esp_sleep_enable_timer_wakeup(60000000LL);
   esp_deep_sleep_start();
 
   // This means something is wrong and we don't control
@@ -116,8 +112,13 @@ void send()
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println("\nConnecting");
 
+  int start_ts = millis();
   while (WiFi.status() != WL_CONNECTED)
   {
+    if (millis() - start_ts > 60000) {
+      deepSleep60s();
+    }
+
     Serial.print(".");
     delay(100);
   }
@@ -130,7 +131,7 @@ void send()
   HTTPClient http;
 
   char url[1024];
-  sprintf(url, "%s&ID=%s&PASSWORD=%s&apiKey=%s&dateutc=%s&action=%s&format=%s&humidity=%.2f&tempf=%.2f&baromin=%.2f&dewptf=%.2f",
+  sprintf(url, "%s?ID=%s&PASSWORD=%s&apiKey=%s&dateutc=%s&action=%s&format=%s&humidity=%.2f&tempf=%.2f&baromin=%.2f&dewptf=%.2f",
     WUNDERGROUND_API_BASE_URL,
     WUNDERGROUND_DEVICE_ID,
     WUNDERGROUND_DEVICE_PASSWORD,
@@ -168,12 +169,6 @@ void send()
   }
 
   http.end();
-  
-  Serial.printf("T: %.2f%s", reading.temperature_f, "F");
-  Serial.printf("P: %.2f%s", reading.pressure_inHg, "inHg");
-  Serial.printf("H: %.2f%s",  reading.humidity, "%");
-  Serial.printf("D: %.2f%s", reading.dewpoint_f, "F");
-
   WiFi.disconnect();
   // Send over WiFi
   step = STEP_DONE;
@@ -182,10 +177,15 @@ void send()
 void done()
 {
   Serial.println("Done");
-  step = STEP_START;
 
-  // Sleep for 60s
-  deepSleep(60000000LL);
+  Serial.printf("T: %.2f%s%s", reading.temperature_f, "F", "\n");
+  Serial.printf("P: %.2f%s%s", reading.pressure_inHg, "inHg", "\n");
+  Serial.printf("H: %.2f%s%s",  reading.humidity, "%", "\n");
+  Serial.printf("D: %.2f%s%s", reading.dewpoint_f, "F", "\n");
+
+  Serial.end();
+
+  deepSleep60s();
 }
 
 void setup()
@@ -212,7 +212,7 @@ void loop()
   if (hasError == true)
   {
     Serial.println("Error" + errorMessage);
-    deepSleep(60000000LL);
+    deepSleep60s();
   }
 
   switch (step)
