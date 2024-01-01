@@ -16,7 +16,7 @@
 #define WUNDERGROUND_API_KEY "" //https://www.wunderground.com/member/api-keys
 #define WUNDERGROUND_DEVICE_ID "KOHCLEVE" // https://www.wunderground.com/member/devices
 #define WUNDERGROUND_DEVICE_PASSWORD "" // https://www.wunderground.com/member/devices
-#define WUNDERGROUND_API_BASE_URL "http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php" + String("?ID=") + WUNDERGROUND_DEVICE_ID + String("&PASSWORD=") + WUNDERGROUND_DEVICE_PASSWORD + String("&apiKey=") + WUNDERGROUND_API_KEY + String("&dateutc=") + String("now") + String("&action=") + String("updateraw") + String("&format=") + String("json")
+#define WUNDERGROUND_API_BASE_URL "http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php"
 
 Adafruit_BME280 bme;
 boolean hasError;
@@ -36,213 +36,15 @@ void error(String message)
   errorMessage = "Error: " + message;
 }
 
-class Reading
-{
-private:
-  float _dewpoint_c;
-  float _dewpoint_f;
-  float _temperature_c;
-  float _temperature_f;
-  float _pressure_hPa;
-  float _pressure_mmHg;
-  float _pressure_inHg;
-  float _humidity;
-
-  Adafruit_BME280 _bme;
-
-public:
-  Reading(Adafruit_BME280 bme)
-  {
-    _bme = bme;
-  }
-
-  void perform()
-  {
-    if (!bme.init() && !bme.begin())
-    {
-      error("BME280 not connected.");
-    }
-
-    _pressure_hPa = bme.readPressure() / 100.0F;
-    _pressure_mmHg = (_pressure_hPa * 0.7500637554);
-    _pressure_inHg = (_pressure_hPa * 0.02952998057228486);
-    _temperature_c = bme.readTemperature();
-    _temperature_f = ((((_temperature_c * 9) + 3) / 5) + 32);
-    _humidity = bme.readHumidity();
-    _dewpoint_c = _temperature_c - ((100 - _humidity) / 5);
-    _dewpoint_f = ((((_dewpoint_c * 9) + 3) / 5) + 32);
-  }
-
-  float temperature()
-  {
-    return _temperature_c;
-  }
-
-  float temperature(String units)
-  {
-    String _units = toLowerCase(units);
-    if (_units == "c")
-    {
-      return _temperature_c;
-    }
-    else if (_units == "f")
-    {
-      return _temperature_f;
-    }
-
-    return NAN;
-  }
-
-  float pressure()
-  {
-    return _pressure_hPa;
-  }
-
-  float pressure(String units)
-  {
-    String _units = toLowerCase(units);
-
-    if (_units == "hpa")
-    {
-      return _pressure_hPa;
-    }
-    else if (_units == "mmhg")
-    {
-      return _pressure_inHg;
-    }
-    else if (_units == "inhg")
-    {
-      return _pressure_inHg;
-    }
-
-    return NAN;
-  }
-
-  float humidity()
-  {
-    return _humidity;
-  }
-
-  float dewpointC() {
-    return _dewpoint_c;
-  }
-
-  float dewpointF() {
-    return _dewpoint_f;
-  }
-
-  float dewpoint(String units)
-  {
-    String _units = toLowerCase(units);
-
-    if (_units == "c")
-    {
-      return _dewpoint_c;
-    }
-    else if (_units == "f")
-    {
-      return _dewpoint_f;
-    }
-
-    return NAN;
-  }
-
-  String serializeTemperatureC()
-  {
-    return String(_temperature_c);
-  }
-
-  String serializeTemperatureF()
-  {
-    return String(_temperature_f);
-  }
-
-  String serializeTemperature(String units)
-  {
-    return serializeTemperature(units, units);
-  }
-
-  String serializeTemperature(String units, String unitString)
-  {
-    const String _unitsLabel = unitString ? unitString : units;
-    String _units = toLowerCase(units);
-
-    if (_units == String("c") || _units == String("f"))
-    {
-      return String(this->temperature(_units)) + _unitsLabel;
-    }
-
-    return String(this->temperature("c")) + _unitsLabel;
-  }
-
-  String serializePressure(String units)
-  {
-    return serializePressure(units, units);
-  }
-
-  String serializePressure(String units, String unitString)
-  {
-    const String _unitsLabel = unitString ? unitString : units;
-    String _units = toLowerCase(units);
-
-    if ((_units == "hpa") || (_units = "inhg"))
-    {
-      return String(this->pressure(_units)) + _unitsLabel;
-    }
-
-    return String(this->pressure());
-  }
-
-  String serializeHumidity()
-  {
-    return serializeHumidity("");
-  }
-
-  String serializeHumidity(String units)
-  {
-    return serializeHumidity(units, units);
-  }
-
-  String serializeHumidity(String units, String unitString)
-  {
-    const String _unitsLabel = unitString ? unitString : units;
-    String _units = toLowerCase(units);
-
-    if ((_units == "%"))
-    {
-      return String(this->humidity() + _unitsLabel);
-    }
-
-    return String(this->humidity());
-  }
-
-  String serializeDewPointC()
-  {
-    return String(_dewpoint_c);
-  }
-
-  String serializeDewPointF()
-  {
-    return String(_dewpoint_f);
-  }
-
-  String serializeDewPoint(String units)
-  {
-    return serializeDewPoint(units, units);
-  }
-
-  String serializeDewPoint(String units, String unitString)
-  {
-    const String _unitsLabel = unitString ? unitString : units;
-    String _units = toLowerCase(units);
-
-    if (_units == String("c") || _units == String("f"))
-    {
-      return String(this->dewpoint(_units)) + _unitsLabel;
-    }
-
-    return String(this->temperature("c")) + _unitsLabel;
-  }
+struct BME280_Reading {
+  float dewpoint_c;
+  float dewpoint_f;
+  float temperature_c;
+  float temperature_f;
+  float pressure_hPa;
+  float pressure_mmHg;
+  float pressure_inHg;
+  float humidity;
 };
 
 enum Steps
@@ -254,8 +56,9 @@ enum Steps
   STEP_DONE,
   STEP_ERROR
 };
+
 int step = STEP_START;
-Reading reading = Reading(bme);
+BME280_Reading reading;
 
 void lightSleep(uint64_t duration)
 {
@@ -275,6 +78,8 @@ void lightSleep(uint64_t duration)
 
 void deepSleep(uint64_t duration)
 {
+  delay(1000);
+
   // Deep Sleep is a Low Power Mode that
   // It doesn't save anything.
   // The setup() will run afterwards
@@ -288,23 +93,26 @@ void deepSleep(uint64_t duration)
 
 void start()
 {
-  Serial.println("Start");
   step = STEP_MEASURE;
 }
 
 void measure()
 {
-  Serial.println("Measure");
+    reading.humidity = bme.readHumidity();
+    reading.pressure_hPa = bme.readPressure() / 100.0F;
+    reading.temperature_c = bme.readTemperature();
 
-  reading.perform();
-
+    reading.pressure_mmHg = (reading.pressure_hPa * 0.7500637554);
+    reading.pressure_inHg = (reading.pressure_hPa * 0.02952998057228486);
+    reading.temperature_f = ((((reading.temperature_c * 9) + 3) / 5) + 32);
+    reading.dewpoint_c = reading.temperature_c - ((100 - reading.humidity) / 5);
+    reading.dewpoint_f = ((((reading.dewpoint_c * 9) + 3) / 5) + 32);
+  
   step = STEP_SEND;
 }
 
 void send()
 {
-  Serial.println("Send");
-
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println("\nConnecting");
 
@@ -320,9 +128,25 @@ void send()
 
   WiFiClient client;
   HTTPClient http;
-  String serverPath = WUNDERGROUND_API_BASE_URL + String("&humidity=") + reading.serializeHumidity() + String("&tempf=") + reading.serializeTemperatureF() + String("&baromin=") + String(reading.serializePressure("mmhg")) + String("&dewptf=" + String(reading.serializeDewPointF()));
 
-  http.begin(serverPath);
+  char url[1024];
+  sprintf(url, "%s&ID=%s&PASSWORD=%s&apiKey=%s&dateutc=%s&action=%s&format=%s&humidity=%f&tempf=%f&baromin=%f&dewptf=%f",
+    WUNDERGROUND_API_BASE_URL,
+    WUNDERGROUND_DEVICE_ID,
+    WUNDERGROUND_DEVICE_PASSWORD,
+    WUNDERGROUND_API_KEY,
+    "now",
+    "updateraw",
+    "json",
+    reading.humidity, 
+    reading.temperature_f,
+    reading.pressure_inHg,
+    reading.dewpoint_f
+  );
+
+  Serial.println(url);
+
+  http.begin(url);
   int httpCode = http.GET();
 
   // httpCode will be negative on error
@@ -345,10 +169,10 @@ void send()
 
   http.end();
   
-  Serial.println("T: " + reading.serializeTemperature("f"));
-  Serial.println("P: " + reading.serializePressure("inhg"));
-  Serial.println("H: " + reading.serializeHumidity("%"));
-  Serial.println("D: " + reading.serializeDewPoint("f"));
+  Serial.printf("T: %d%s", reading.temperature_f, "F");
+  Serial.printf("P: %d%s", reading.pressure_inHg, "inHg");
+  Serial.printf("H: %d%s",  reading.humidity, "%");
+  Serial.printf("D: %d%s", reading.dewpoint_f, "F");
 
   WiFi.disconnect();
   // Send over WiFi
@@ -367,6 +191,7 @@ void done()
 void setup()
 {
   Serial.begin(115200);
+  delay(1000);
   Serial.println("Checking BME280 Connectivity");
 
 
