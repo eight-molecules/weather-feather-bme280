@@ -94,16 +94,16 @@ void start()
 
 void measure()
 {
-    reading.humidity = bme.readHumidity();
-    reading.pressure_hPa = bme.readPressure() / 100.0F;
-    reading.temperature_c = bme.readTemperature();
+  reading.humidity = bme.readHumidity();
+  reading.pressure_hPa = bme.readPressure() / 100.0F;
+  reading.temperature_c = bme.readTemperature();
 
-    reading.pressure_mmHg = (reading.pressure_hPa * 0.7500637554);
-    reading.pressure_inHg = (reading.pressure_hPa * 0.02952998057228486);
-    reading.temperature_f = ((((reading.temperature_c * 9) + 3) / 5) + 32);
-    reading.dewpoint_c = reading.temperature_c - ((100 - reading.humidity) / 5);
-    reading.dewpoint_f = ((((reading.dewpoint_c * 9) + 3) / 5) + 32);
-  
+  reading.pressure_mmHg = (reading.pressure_hPa * 0.7500637554);
+  reading.pressure_inHg = (reading.pressure_hPa * 0.02952998057228486);
+  reading.temperature_f = ((((reading.temperature_c * 9) + 3) / 5) + 32);
+  reading.dewpoint_c = reading.temperature_c - ((100 - reading.humidity) / 5);
+  reading.dewpoint_f = ((((reading.dewpoint_c * 9) + 3) / 5) + 32);
+
   step = STEP_SEND;
 }
 
@@ -145,8 +145,6 @@ void send()
     reading.dewpoint_f
   );
 
-  Serial.println(url);
-
   http.begin(url);
   int httpCode = http.GET();
 
@@ -170,21 +168,19 @@ void send()
 
   http.end();
   WiFi.disconnect();
-  // Send over WiFi
+  
   step = STEP_DONE;
 }
 
 void done()
 {
-  Serial.println("Done");
-
   Serial.printf("T: %.2f%s%s", reading.temperature_f, "F", "\n");
   Serial.printf("P: %.2f%s%s", reading.pressure_inHg, "inHg", "\n");
   Serial.printf("H: %.2f%s%s",  reading.humidity, "%", "\n");
   Serial.printf("D: %.2f%s%s", reading.dewpoint_f, "F", "\n");
-
   Serial.end();
 
+  step = STEP_START;
   deepSleep60s();
 }
 
@@ -211,7 +207,7 @@ void loop()
 {
   if (hasError == true)
   {
-    Serial.println("Error" + errorMessage);
+    Serial.printf("Error: %s%s", errorMessage, '\n');
     deepSleep60s();
   }
 

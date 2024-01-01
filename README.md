@@ -19,10 +19,10 @@ PlatformIO - https://platformio.org/install/ide?install=vscode
 3. Go to API Keys.
 4. Generate an API Key.
 5. Copy the API Key.
-6. Paste the API Key into `main.cpp` at line 17.
+6. Paste the API Key into `env.h`.
 7. Go to My Devices.
-8. Copy the Device ID into `main.cpp` at line 18.
-9. Copy the Device Password into `main.cpp` at line 19.
+8. Copy the Device ID into `env.h`.
+9. Copy the Device Password into `env.h`.
 
 ## Installation
 1. Install Visual Studio Code and the PlatformIO extension.
