@@ -101,8 +101,8 @@ void measure()
   reading.pressure_mmHg = (reading.pressure_hPa * 0.7500637554);
   reading.pressure_inHg = (reading.pressure_hPa * 0.02952998057228486);
   reading.temperature_f = ((((reading.temperature_c * 9) + 3) / 5) + 32);
-  reading.dewpoint_c = reading.temperature_c - ((100 - reading.humidity) / 5);
-  reading.dewpoint_f = ((((reading.dewpoint_c * 9) + 3) / 5) + 32);
+  reading.dewpoint_c = reading.temperature_c - ((100.0 - reading.humidity) / 5.0);
+  reading.dewpoint_f = reading.temperature_f - ((100.0 - reading.humidity) / 5.0);
 
   step = STEP_SEND;
 }
@@ -115,7 +115,7 @@ void send()
   int start_ts = millis();
   while (WiFi.status() != WL_CONNECTED)
   {
-    if (millis() - start_ts > 60000) {
+    if (millis() - start_ts > 15000) {
       deepSleep60s();
     }
 
@@ -167,7 +167,7 @@ void send()
   }
 
   http.end();
-  WiFi.disconnect();
+  WiFi.disconnect("eraseap");
   
   step = STEP_DONE;
 }
